@@ -27,15 +27,15 @@ if [[ -n "$next_version" ]]; then
     echo "The next available major version is: $next_version"
     read -p "Would you like to install $next_version? (y/n) " choice
     case "$choice" in
-        y|Y ) 
+      (y|Y )
             sudo apt install -y $next_version
             sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/$next_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-${next_version#gcc-}
             echo "Installed $next_version"
             ;;
-        n|N ) 
+       ( n|N )
             echo "Skipping installation of $next_version"
             ;;
-        * ) 
+       ( * )
             echo "Invalid choice. Skipping installation."
             ;;
     esac
@@ -80,4 +80,3 @@ echo "Current default GCC version:"
 gcc --version
 
 echo "GCC update process complete."
-

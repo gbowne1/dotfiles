@@ -3,7 +3,7 @@
 # Function to validate username
 function validateUsername() {
     local username="$1"
-    if ! [[ $username =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    if ! [[ $username =~ ^[a-zA-Z0-9_-]{3,32}$ ]]; then
         echo "Invalid username. Only alphanumeric characters, underscores, and hyphens are allowed."
         return 1
     fi
@@ -30,9 +30,13 @@ function setPassword() {
         read -sp "Confirm password: " confirm
         echo
         if [[ "$password" == "$confirm" ]]; then
-            # Basic password strength check (optional)
-            if [[ ${#password} -lt 8 ]]; then
-                echo "Password too short."
+            # Advanced password strength check
+            if [[ ! $password =~ [A-Z] ]] || [[ ! $password =~ [a-z] ]] || [[ ! $password =~ [0-9] ]]; then
+                echo "Password must contain at least one uppercase letter, lowercase letter, and digit."
+                continue
+            fi
+            if [[ ${#password} -lt 12 ]]; then
+                echo "Password too short. Must be at least 12 characters long."
                 continue
             fi
             echo "$username:$password" | sudo chpasswd
@@ -53,7 +57,7 @@ function addUser() {
     fi
 
     # Check if user already exists
-    if id "$username" &>/dev/null; then
+    if id "$username" &>/dev/null 2>&1; then
         echo "User $username already exists."
         return 1
     fi

@@ -380,7 +380,6 @@
 		"overrideConfigFile": ".eslintrc",
 	},
 	"eslint.nodePath": "/usr/local/lib/node_modules/",
-	"eslint.packageManager": "npm",
 	"eslint.format.enable": true,
 	"eslint.validate": [
 		"javascript",
