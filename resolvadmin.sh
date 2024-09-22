@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Function to validate IP address
+validate_ip() {
+    local ip=$1
+    [[ $ip =~ ^([0-9]{1,3}\.){3}[0-9]{1}$ ]] || { echo "Invalid IP address"; exit 1; }
+}
+
 # Function to display current resolv.conf content
 display_resolv() {
     cat /etc/resolv.conf
@@ -25,6 +31,34 @@ remove_nameserver() {
     else
         echo "Nameserver $ns removed successfully."
     fi
+}
+
+check_root() {
+    if [ "$(id -u)" != "0" ]; then
+        echo "This script must be run as root or with sudo privileges."
+        exit 1
+    fi
+}
+
+# Function to create a backup of resolv.conf
+backup_resolvconf() {
+    cp /etc/resolv.conf /etc/resolv.conf.bak
+}
+
+# Function to restore the backup of resolv.conf
+restore_resolvconf() {
+    if [[ -f /etc/resolv.conf.bak ]]; then
+        cp /etc/resolv.conf.bak /etc/resolv.conf
+        echo "Resolv.conf restored from backup."
+    else
+        echo "No backup found."
+    fi
+}
+
+edit_entry() {
+    read -p "Enter the number of the entry to edit: " entry_num
+    sed -i "${entry_num}s/^.*$/&\n/" /etc/resolv.conf
+    # Implement editing logic here
 }
 
 # Main function
@@ -56,6 +90,8 @@ if [ "$(id -u)" != "0" ]; then
     echo "This script must be run as root."
     exit 1
 fi
+
+check_root
 
 # Run the main function
 main

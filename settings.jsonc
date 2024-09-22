@@ -55,7 +55,7 @@
 			"source.organizeImports": "explicit"
 		},
 		"editor.formatOnSave": true,
-		"editor.formatOnPaste": false,
+		"editor.formatOnPaste": false
 	},
 	// Github Settings
 	"githubPullRequests.queries": [
@@ -247,11 +247,11 @@
 		}
 	},
 	"[plaintext]": {
-		"files.insertFinalNewline": false,
+		"files.insertFinalNewline": false
 	},
 	"[typescript]": {
 		"editor.defaultFormatter": "vscode.typescript-language-features",
-		"editor.formatOnSave": true,
+		"editor.formatOnSave": true
 	},
 	"testing.autoRun.mode": "onlyPreviouslyRun",
 	"[sql]": {
@@ -277,11 +277,11 @@
 		"cSpell.fixSpellingWithRenameProvider": true,
 		"cSpell.advanced.feature.useReferenceProviderWithRename": true,
 		"cSpell.advanced.feature.useReferenceProviderRemove": "/^#+\\s/",
-		"editor.defaultFormatter": "vscode.markdown-language-features",
+		"editor.defaultFormatter": "vscode.markdown-language-features"
 	},
 	"[php]": {
 		"cSpell.fixSpellingWithRenameProvider": false,
-		"editor.defaultFormatter": "bmewburn.vscode-intelephense-client",
+		"editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
 	},
 	// PHP settings
 	"php.suggest.basic": true,
@@ -359,7 +359,7 @@
 	"emmet.includeLanguages": {
 		"javascript": "javascript",
 		"javascriptreact": "javascriptreact",
-		"html": "html",
+		"html": "html"
 	},
 	"emmet.showExpandedAbbreviation": "always",
 	"emmet.triggerExpansionOnTab": true,
@@ -377,7 +377,7 @@
 		}
 	],
 	"eslint.options": {
-		"overrideConfigFile": ".eslintrc",
+		"overrideConfigFile": ".eslintrc"
 	},
 	"eslint.nodePath": "/usr/local/lib/node_modules/",
 	"eslint.format.enable": true,

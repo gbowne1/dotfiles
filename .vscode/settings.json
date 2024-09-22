@@ -1613,11 +1613,6 @@
 	// Debug
 	// Allow setting breakpoints in any file.
 	"debug.allowBreakpointsEverywhere": false,
-	// Controls whether variables that are lazily resolved, such as getters, are automatically resolved and expanded by the debugger.
-	//  - auto: When in screen reader optimized mode, automatically expand lazy variables.
-	//  - on: Always automatically expand lazy variables.
-	//  - off: Never automatically expand lazy variables.
-	"debug.autoExpandLazyVariables": "auto",
 	// At the end of a debug session, all the read-only tabs associated with that session will be closed
 	"debug.closeReadonlyTabsOnEnd": false,
 	// Controls whether to confirm when the window closes if there are active debug sessions.
@@ -3177,8 +3172,6 @@
 	"accessibility.accessibleView.closeOnKeyPress": true,
 	// Controls whether variable changes should be announced in the debug watch view.
 	"accessibility.debugWatchVariableAnnouncements": true,
-	// Whether or not position changes should be debounced
-	"accessibility.signalOptions.debouncePositionChanges": false,
 	// The volume of the sounds in percent (0-100).
 	"accessibility.signalOptions.volume": 70,
 	// Indicates when a chat request is made.
