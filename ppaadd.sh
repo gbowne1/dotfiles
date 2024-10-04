@@ -1,4 +1,20 @@
 #!/bin/bash
+
+usage() {
+    echo "Utility to add PPA repositories in your Debian machine"
+    echo "Usage: $0 ppa:user/ppa-name"
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run as root" >&2
+    exit 1
+fi
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run as root" >&2
+    exit 1
+fi
+
 if [ $# -eq 1 ]
 NM=$(uname -a && date)
 NAME=$(echo $NM | md5sum | cut -f1 -d" ")
