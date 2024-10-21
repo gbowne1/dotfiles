@@ -1,3 +1,4 @@
+set errorbells
 set nocompatible
 set number
 set ruler
@@ -6,6 +7,8 @@ set encoding=utf-8
 set fileformat=unix
 set nobackup
 set nowritebackup
+set history=1000
+set display=lastline
 set updatetime=300
 set shortmess+=c
 set cursorline
@@ -13,10 +16,9 @@ set incsearch
 set ignorecase
 set smartcase
 set hlsearch
-set cursorline
 set wildmenu
 set showcmd
-set showmode 
+set showmode
 set hidden
 set wrap
 set backspace=indent,eol,start
@@ -27,126 +29,113 @@ set laststatus=2
 set nobreakindent
 set smartindent
 set foldmethod=syntax
-set foldlevelstart=99
+set noexpandtab
+set nowrap
+set nosmartindent
+set noautoindent
 colorscheme desert
+colorscheme solarized
+colorscheme gruvbox
 
 " Enable COC for autocompletion
 autocmd BufEnter * silent! :CocCommand eslint.executeAutofix
 
-" Set syntax highlighting for various file types
+" Set filetype plugin and syntax highlighting
 filetype plugin indent on
 syntax on
 
 " Enable spell checking
 set spell
 
-" Set the tabstop and softtabstop to 4 spaces
+" Tab and indentation settings
 set tabstop=4
 set softtabstop=4
-
-" Set the shiftwidth to 4 spaces for consistent indentation
 set shiftwidth=4
-
-" Use spaces for indentation instead of tabs
 set expandtab
-
-" Automatically indent new lines
 set autoindent
 
-" Set the filetype plugin to automatically detect file types
-filetype plugin on
-
-" Set the syntax highlighting to on
-syntax on
-
-" Set the spell checking to on
-set spell
-
-" Set the tabstop and softtabstop to 4 spaces
-set tabstop=4
-set softtabstop=4
-
-" Set the shiftwidth to 4 spaces for consistent indentation
-set shiftwidth=4
-
-" Use spaces for indentation instead of tabs
-set expandtab
-
-" Automatically indent new lines
-set autoindent
-
-" Set up syntax highlighting for Markdown
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.md set ft=markdown
-
-" Set up syntax highlighting for HTML5
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.html set ft=html5
-
-" Set up syntax highlighting for CSS3
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.css set ft=css3
-
-" Set up syntax highlighting for PHP
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.php set ft=php
-
-" Set up syntax highlighting for JavaScript (ES7/ES2016)
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.js set ft=javascript
-
-" Set up syntax highlighting for SQL
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.sql set ft=sql
-
-" Set up syntax highlighting for JSON
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.json set ft=json
-
-" Set up syntax highlighting for JSONC
-filetype indent on
-syntax on
-au BufNewFile,BufRead *.jsonc set ft=jsonc
-
-" Markdown Settings
-autocmd FileType markdown setlocal wrap
-autocmd FileType markdown setlocal linebreak
-autocmd FileType markdown setlocal spell
-
-" HTML/CSS Settings
+" Language-specific settings
+autocmd FileType markdown setlocal wrap linebreak spell
 autocmd FileType html setlocal ts=2 sts=2 sw=2 expandtab
 autocmd FileType css setlocal ts=2 sts=2 sw=2 expandtab
-
-" JavaScript Settings
 autocmd FileType javascript setlocal ts=2 sts=2 sw=2 expandtab
 autocmd FileType jsx setlocal ts=2 sts=2 sw=2 expandtab
-
-" PHP Settings
+autocmd FileType python setlocal ts=4 sts=4 sw=4 expandtab
 autocmd FileType php setlocal ts=4 sts=4 sw=4 expandtab
-
-" SQL Settings
 autocmd FileType sql setlocal ts=4 sts=4 sw=4 expandtab
-
-" JSON Settings
 autocmd FileType json setlocal ts=2 sts=2 sw=2 expandtab
 autocmd FileType jsonc setlocal ts=2 sts=2 sw=2 expandtab
+autocmd FileType c setlocal ts=8 sts=8 sw=8 expandtab
+autocmd FileType cpp setlocal ts=8 sts=8 sw=8 expandtab
+autocmd FileType csharp setlocal ts=4 sts=4 sw=4 expandtab
+autocmd FileType txt setlocal tw=80
+autocmd FileType jquery setlocal ft=javascript
+autocmd FileType ajax setlocal ft=javascript
 
-" Python Settings
-autocmd FileType python setlocal ts=4 sts=4 sw=4 expandtab
-let python_highlight_all=1
+" C# and ASP.NET settings
+autocmd FileType cs setlocal ts=4 sts=4 sw=4 expandtab
+autocmd FileType aspx setlocal ts=4 sts=4 sw=4 expandtab
+autocmd FileType ascx setlocal ts=4 sts=4 sw=4 expandtab
 
-" React Settings
-autocmd FileType jsx setlocal ts=2 sts=2 sw=2 expandtab
-
-" PostgreSQL Settings
+" MongoDB and PostgreSQL settings
+autocmd FileType javascript setlocal dictionary+=/usr/share/mongodb/mongokeyword
 autocmd FileType sql setlocal dictionary+=/usr/share/postgresql/11/sqlwords
 
-" MongoDB Settings
-autocmd FileType javascript setlocal dictionary+=/usr/share/mongodb/mongokeyword
+" React settings
+let g:jsx_ext_required=0
+
+" Python settings
+let python_highlight_all=1
+
+" Markdown settings
+augroup MarkdownSettings
+    autocmd!
+    autocmd FileType markdown setlocal wrap linebreak spell
+augroup END
+
+" HTML/CSS settings
+augroup HtmlCssSettings
+    autocmd!
+    autocmd FileType html setlocal ts=2 sts=2 sw=2 expandtab
+    autocmd FileType css setlocal ts=2 sts=2 sw=2 expandtab
+augroup END
+
+" JavaScript settings
+augroup JavascriptSettings
+    autocmd!
+    autocmd FileType javascript setlocal ts=2 sts=2 sw=2 expandtab
+    autocmd FileType jsx setlocal ts=2 sts=2 sw=2 expandtab
+augroup END
+
+" PHP settings
+augroup PhpSettings
+    autocmd!
+    autocmd FileType php setlocal ts=4 sts=4 sw=4 expandtab
+augroup END
+
+" SQL settings
+augroup SqlSettings
+    autocmd!
+    autocmd FileType sql setlocal ts=4 sts=4 sw=4 expandtab
+    autocmd FileType postgresql setlocal dictionary+=/usr/share/postgresql/11/sqlwords
+augroup END
+
+" JSON settings
+augroup JsonSettings
+    autocmd!
+    autocmd FileType json setlocal ts=2 sts=2 sw=2 expandtab
+    autocmd FileType jsonc setlocal ts=2 sts=2 sw=2 expandtab
+augroup END
+
+" C/C++ settings
+augroup CppSettings
+    autocmd!
+    autocmd FileType c setlocal ts=8 sts=8 sw=8 expandtab
+    autocmd FileType cpp setlocal ts=8 sts=8 sw=8 expandtab
+augroup END
+
+" Text file settings
+augroup TextFileSettings
+    autocmd!
+    autocmd FileType txt setlocal tw=80
+augroup END
