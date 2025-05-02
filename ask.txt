@@ -1,0 +1,11 @@
+i need a network_diag.sh that uses
+
+bind ip netstat ping ping6 ifconfig iptables scp nmap traceroute ansible chef ss dig
+
+nslookup route host arp iwconfig hostname mtr whois dhclient ethtool sshd ssh-agent ssh
+
+rpcinfo nmcli nmtui hostnamectl ifdown ifup nc socat rsync dnsmasq telnet ftp sftp netcat
+
+lsof fuser sysctl nsenter getent plog rpcinfo modprobe sar ufw iostat vmstat tc chef 
+
+to do network diagnostics and is fully featured and works with bash 5.0.0 through 5.2.**

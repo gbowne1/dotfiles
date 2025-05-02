@@ -1,10 +1,26 @@
 #!/bin/bash
 
+LOG_FILE="/var/log/user_group_mgmt.log"
+
+# Logging function
+log() {
+    local level="$1"
+    local message="$2"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    if [[ -w "$LOG_FILE" || ! -e "$LOG_FILE" ]]; then
+        echo "$timestamp [$level] $message" >> "$LOG_FILE"
+    else
+        logger "$message"
+    fi
+}
+
 # Function to validate username
 function validateUsername() {
     local username="$1"
     if ! [[ $username =~ ^[a-zA-Z0-9_-]{3,32}$ ]]; then
         echo "Invalid username. Only alphanumeric characters, underscores, and hyphens are allowed."
+        log "ERROR" "Invalid username attempt: $username"
         return 1
     fi
     return 0
@@ -15,6 +31,7 @@ function validateGroupName() {
     local groupName="$1"
     if ! [[ $groupName =~ ^[a-zA-Z0-9_-]+$ ]]; then
         echo "Invalid group name. Only alphanumeric characters, underscores, and hyphens are allowed."
+        log "ERROR" "Invalid group name attempt: $groupName"
         return 1
     fi
     return 0
@@ -30,17 +47,23 @@ function setPassword() {
         read -sp "Confirm password: " confirm
         echo
         if [[ "$password" == "$confirm" ]]; then
-            # Advanced password strength check
-            if [[ ! $password =~ [A-Z] ]] || [[ ! $password =~ [a-z] ]] || [[ ! $password =~ [0-9] ]]; then
-                echo "Password must contain at least one uppercase letter, lowercase letter, and digit."
+            if [[ ! $password =~ [A-Z] || ! $password =~ [a-z] || ! $password =~ [0-9] ]]; then
+                echo "Password must contain at least one uppercase, lowercase letter, and a digit."
                 continue
             fi
             if [[ ${#password} -lt 12 ]]; then
-                echo "Password too short. Must be at least 12 characters long."
+                echo "Password too short. Must be at least 12 characters."
                 continue
             fi
             echo "$username:$password" | sudo chpasswd
-            return 0
+            if [[ $? -eq 0 ]]; then
+                log "INFO" "Password set for user $username"
+                return 0
+            else
+                echo "Failed to set password for $username."
+                log "ERROR" "Failed to set password for $username"
+                return 1
+            fi
         fi
         echo "Passwords don't match. Please try again."
     done
@@ -51,23 +74,28 @@ function addUser() {
     local username=$1
     local home_dir="/home/$username"
 
-    # Validate username
     if ! validateUsername "$username"; then
         return 1
     fi
 
-    # Check if user already exists
-    if id "$username" &>/dev/null 2>&1; then
+    if id "$username" &>/dev/null; then
         echo "User $username already exists."
+        log "ERROR" "Attempted to create existing user: $username"
         return 1
     fi
 
     echo "Creating user $username"
     if sudo useradd -m -s /bin/bash -d "$home_dir" "$username"; then
-        setPassword "$username"
-        echo "User $username created successfully."
+        if setPassword "$username"; then
+            echo "User $username created successfully."
+            log "INFO" "User $username created successfully."
+        else
+            echo "Failed to set password for $username."
+            log "ERROR" "User $username creation succeeded but password setup failed."
+        fi
     else
         echo "Failed to create user $username."
+        log "ERROR" "User creation failed: $username"
         return 1
     fi
 }
@@ -76,49 +104,55 @@ function addUser() {
 function addGroup() {
     local groupName=$1
 
-    # Validate group name
     if ! validateGroupName "$groupName"; then
         return 1
     fi
 
-    # Check if group already exists
     if getent group "$groupName" &>/dev/null; then
         echo "Group $groupName already exists."
+        log "ERROR" "Attempted to create existing group: $groupName"
         return 1
     fi
 
     echo "Creating group $groupName"
     if sudo groupadd "$groupName"; then
         echo "Group $groupName created successfully."
+        log "INFO" "Group $groupName created successfully."
     else
         echo "Failed to create group $groupName."
+        log "ERROR" "Group creation failed: $groupName"
         return 1
     fi
 }
 
-# Function to check an existing user or group
+# Function to check user/group existence
 function checkUserOrGroup() {
     local entity=$1
     local type=$2
     if getent "$type" "$entity" &>/dev/null; then
         echo "$entity exists."
+        log "INFO" "$type $entity exists."
     else
         echo "$entity does not exist."
+        log "INFO" "$type $entity does not exist."
     fi
 }
 
-# Function to delete a user or group
+# Function to delete user or group
 function deleteUserOrGroup() {
     local entity=$1
     local type=$2
-    if [[ "$type" == "user" ]] && id "$entity" &>/dev/null; then
+    if [[ "$type" == "user" && $(id -u "$entity" 2>/dev/null) ]]; then
         sudo userdel -r "$entity"
         echo "Deleted user $entity."
-    elif [[ "$type" == "group" ]] && getent group "$entity" &>/dev/null; then
+        log "INFO" "Deleted user $entity."
+    elif [[ "$type" == "group" && $(getent group "$entity") ]]; then
         sudo groupdel "$entity"
         echo "Deleted group $entity."
+        log "INFO" "Deleted group $entity."
     else
         echo "$entity does not exist."
+        log "ERROR" "Delete failed. $type $entity does not exist."
     fi
 }
 
@@ -128,11 +162,14 @@ function listUsersOrGroups() {
     if [[ "$type" == "users" ]]; then
         echo "Listing users:"
         getent passwd | cut -d: -f1
+        log "INFO" "Listed users."
     elif [[ "$type" == "groups" ]]; then
         echo "Listing groups:"
         getent group | cut -d: -f1
+        log "INFO" "Listed groups."
     else
         echo "Invalid type. Please enter 'users' or 'groups'."
+        log "ERROR" "Invalid list request: $type"
     fi
 }
 
@@ -142,20 +179,28 @@ function addUserToGroup() {
     local group=$2
     if ! id "$user" &>/dev/null; then
         echo "User $user does not exist."
+        log "ERROR" "Cannot add to group: user $user does not exist."
         return 1
     fi
     if ! getent group "$group" &>/dev/null; then
         echo "Group $group does not exist."
+        log "ERROR" "Cannot add to group: group $group does not exist."
         return 1
     fi
-    sudo usermod -aG "$group" "$user"
-    echo "User $user added to group $group."
+    if sudo usermod -aG "$group" "$user"; then
+        echo "User $user added to group $group."
+        log "INFO" "User $user added to group $group."
+    else
+        echo "Failed to add user $user to group $group."
+        log "ERROR" "Failed to add user $user to group $group."
+    fi
 }
 
-# Main script starts here
-trap 'echo "Exiting..."' EXIT
+# Main script
+trap 'echo "Exiting..."; log "INFO" "Script exited."' EXIT
 
 echo "Welcome to User and Group Management Script"
+log "INFO" "Script started."
 
 while true; do
     echo "Menu:"
@@ -180,19 +225,23 @@ while true; do
         3)
             read -p "Enter entity (username or groupname): " entity
             read -p "Enter type (user or group): " entityType
+            entityType="${entityType,,}"  # normalize to lowercase
             if [[ "$entityType" == "user" || "$entityType" == "group" ]]; then
                 checkUserOrGroup "$entity" "$entityType"
             else
                 echo "Invalid type. Please enter 'user' or 'group'."
+                log "ERROR" "Invalid type entered in check: $entityType"
             fi
             ;;
         4)
             read -p "Enter entity (username or groupname): " entity
             read -p "Enter type (user or group): " entityType
+            entityType="${entityType,,}"
             if [[ "$entityType" == "user" || "$entityType" == "group" ]]; then
                 deleteUserOrGroup "$entity" "$entityType"
             else
                 echo "Invalid type. Please enter 'user' or 'group'."
+                log "ERROR" "Invalid type entered in delete: $entityType"
             fi
             ;;
         5)
@@ -209,6 +258,7 @@ while true; do
             ;;
         *)
             echo "Invalid option. Please try again."
+            log "ERROR" "Invalid menu option selected: $choice"
             ;;
     esac
 done
