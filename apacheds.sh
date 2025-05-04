@@ -16,36 +16,40 @@ DESC="Apache Directory Server"
 PIDFILE=/var/run/$NAME.pid
 LOGFILE=/var/log/$NAME.log
 
+. /lib/lsb/init-functions
+
 case "$1" in
     start)
-        echo "Starting $DESC..."
-        # Ensure the PID file does not exist before starting
+        log_daemon_msg "Starting $DESC"
         if [ ! -f $PIDFILE ]; then
-            $DAEMON start > $LOGFILE 2>&1 &
-            echo $! > $PIDFILE
+            $DAEMON start >> $LOGFILE 2>&1
+            sleep 1
+            pidof java > $PIDFILE  # crude example, better to parse correctly
+            log_end_msg 0
         else
-            echo "$DESC is already running."
+            log_progress_msg "$DESC already running"
+            log_end_msg 1
         fi
         ;;
     stop)
-        echo "Stopping $DESC..."
+        log_daemon_msg "Stopping $DESC"
         if [ -f $PIDFILE ]; then
             kill $(cat $PIDFILE)
-            rm $PIDFILE
+            rm -f $PIDFILE
+            log_end_msg 0
         else
-            echo "$DESC is not running."
+            log_progress_msg "$DESC not running"
+            log_end_msg 1
         fi
         ;;
     restart)
-        echo "Restarting $DESC..."
         $0 stop
         sleep 1
         $0 start
         ;;
     *)
-        echo "Usage: /etc/init.d/$NAME {start|stop|restart}"
+        echo "Usage: $0 {start|stop|restart}"
         exit 1
 esac
 
 exit 0
-
