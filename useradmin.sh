@@ -1,6 +1,10 @@
 #!/bin/bash
 
 LOG_FILE="/var/log/user_group_mgmt.log"
+# Fallback for users without root privileges
+if ! { [ -w "$LOG_FILE" ] || [ ! -e "$LOG_FILE" ]; }; then
+    LOG_FILE="$HOME/user_group_mgmt.log"
+fi
 
 # Logging function
 log() {
@@ -142,7 +146,7 @@ function checkUserOrGroup() {
 function deleteUserOrGroup() {
     local entity=$1
     local type=$2
-    if [[ "$type" == "user" && $(id -u "$entity" 2>/dev/null) ]]; then
+    if [[ "$type" == "user" && $(id -u "$entity" 2>/dev/null) != "" ]]; then
         sudo userdel -r "$entity"
         echo "Deleted user $entity."
         log "INFO" "Deleted user $entity."

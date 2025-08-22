@@ -38,7 +38,9 @@ validate_fstab() {
 check_fstab() {
     echo "Checking /etc/fstab entries..."
     while IFS= read -r line; do
-        [[ "$line" =~ ^\#.* ]] || [[ -z "$line" ]] && continue
+        if [[ "$line" =~ ^#.* ]] || [[ -z "$line" ]]; then
+            continue
+        fi
 
         device=$(echo "$line" | awk '{print $1}')
         mount_point=$(echo "$line" | awk '{print $2}')
@@ -72,7 +74,7 @@ check_swap() {
         swap_device=$(blkid -t TYPE=swap -o device | head -n 1)
         if [[ -n "$swap_device" ]]; then
             uuid=$(blkid -s UUID -o value "$swap_device")
-            echo -e "UUID=$uuid none swap sw 0 0" >> /etc/fstab
+            grep -q "UUID=$uuid" /etc/fstab || echo "UUID=$uuid none swap sw 0 0" >> /etc/fstab
             echo -e "${GREEN}Swap entry added for $swap_device.${NC}"
         else
             echo -e "${RED}No swap device detected. Please create one manually.${NC}"
@@ -98,7 +100,7 @@ update_uuids() {
         if [[ "$device" =~ ^/dev/ ]]; then
             uuid=$(blkid -s UUID -o value "$device" 2>/dev/null)
             if [[ -n "$uuid" ]]; then
-                new_line=$(echo "$line" | awk -v uuid="UUID=$uuid" '{$1 = uuid; print}')
+                new_line=$(echo "$line" | sed "s|^$device|UUID=$uuid|")
                 echo "$new_line" >> "$tmpfile"
                 echo -e "${GREEN}Updated:$NC $device -> UUID=$uuid"
                 changed=true
@@ -110,7 +112,7 @@ update_uuids() {
         fi
     done < /etc/fstab
 
-    if $changed; then
+    if [[ "$changed" == true ]]; then
         mv "$tmpfile" /etc/fstab
         echo -e "${GREEN}UUID updates completed.${NC}"
     else
