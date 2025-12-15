@@ -1,2 +1,26 @@
-#!/bin/bash 
-#!/bin/bash  "# Get system information"  "UPTIME=\$(uptime -p)"  "LOAD=\$(cat /proc/loadavg | awk '{print \$1, \$2, \$3}')"  "DATE=\$(date +\"%Y-%m-%d %H:%M:%S\")"  "# Create the MOTD"  "cat << EOF"  "ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»"  "º                                                                      º"  "º                     ?? Welcome to Your Awesome Linux System! ??      º"  "º                                                                      º"  "º                     Uptime: \$UPTIME                                   º"  "º                     Load Average: \$LOAD                               º"  "º                     Current Date: \$DATE                              º"  "º                                                                      º"  "º            \"Code is like humor. When you have to explain it, it's bad.\" ??  º"  "º                                                                      º"  "º            Remember to check your commits and keep your code clean! ??  º"  "º                                                                      º"  "º                     Have a great day! ??                             º"  "º                                                                      º"  "ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼"  "EOF" 
+#!/bin/bash
+
+# --- Get system information ---
+UPTIME=$(uptime -p)
+# Load average: 1-minute, 5-minute, 15-minute
+LOAD=$(cat /proc/loadavg | awk '{print $1, $2, $3}')
+DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
+# --- Create the MOTD using a Here Document (cat << EOF) ---
+cat << EOF
+â•­â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â•®
+â”‚                                                                      â”‚
+â”‚                ðŸš€ Welcome to Your Awesome Linux System! ðŸš€           â”‚
+â”‚                                                                      â”‚
+â”‚                Uptime: $UPTIME                                       â”‚
+â”‚                Load Average: $LOAD                                   â”‚
+â”‚                Current Date: $DATE                                   â”‚
+â”‚                                                                      â”‚
+â”‚        "Code is like humor. When you have to explain it, it's bad." ðŸ¤” â”‚
+â”‚                                                                      â”‚
+â”‚          Remember to check your commits and keep your code clean! âœ…  â”‚
+â”‚                                                                      â”‚
+â”‚                Have a great day! ðŸ˜Š                                  â”‚
+â”‚                                                                      â”‚
+â•°â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â•¯
+EOF
