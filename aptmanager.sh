@@ -1,103 +1,185 @@
 #!/bin/bash
 
-# APT Maintenance Script - Extended Version
-# Compatible with Bash 5.0.0 - 5.2.x
+# ==============================================================================
+# UNIVERSAL DEBIAN APT MANAGER & MODERNIZER
+# Compatible with: Debian 10 (Buster), 11 (Bullseye), 12 (Bookworm), 13 (Trixie)
+# Features: URI Verification, DEB822 Conversion, GPG Migration, Firmware Setup
+# ==============================================================================
 
 set -e
 
-# Define paths
-APT_SOURCES="/etc/apt/sources.list"
-APT_SOURCES_DIR="/etc/apt/sources.list.d"
-APT_TRUSTED_KEYS="/etc/apt/trusted.gpg.d"
+# --- Configuration & Colors ---
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+BACKUP_DIR="/var/backups/apt_modernize_$(date +%F)"
+KEYRING_DIR="/etc/apt/keyrings"
+MAIN_SOURCES="/etc/apt/sources.list"
 
-# Function to check APT repository files
-check_sources() {
-    echo "Checking APT sources..."
-    if [ ! -f "$APT_SOURCES" ]; then
-        echo "Error: $APT_SOURCES not found!"
-        exit 1
-    fi
+# --- OS Detection ---
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    VERSION_ID=$VERSION_ID
+    CODENAME=$VERSION_CODENAME
+else
+    echo -e "${RED}Error: Cannot detect Debian version.${NC}"; exit 1
+fi
 
-    if [ ! -d "$APT_SOURCES_DIR" ]; then
-        echo "Error: $APT_SOURCES_DIR does not exist!"
-        exit 1
-    fi
+# --- Helper Functions ---
+log() { echo -e "${GREEN}[+]${NC} $1"; }
+warn() { echo -e "${YELLOW}[!]${NC} $1"; }
+err() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-    echo "APT sources and directory exist."
-}
-
-# Function to update and upgrade system
-update_and_upgrade() {
-    echo "Updating and upgrading system..."
-    sudo apt update && sudo apt upgrade -y
-    sudo apt full-upgrade -y
-    sudo apt-get dist-upgrade -y
-}
-
-# Function to validate repository entries
-validate_sources() {
-    echo "Validating repository entries..."
-    grep -E '^deb|^deb-src' "$APT_SOURCES" || echo "Warning: No valid repositories found in $APT_SOURCES"
-
-    for file in "$APT_SOURCES_DIR"/*.list; do
-        [ -f "$file" ] || continue
-        echo "Checking: $file"
-        grep -E '^deb|^deb-src' "$file" || echo "Warning: No valid repositories found in $file"
-    done
-}
-
-# Function to clean repository files
-clean_sources() {
-    echo "Cleaning duplicate entries..."
-    awk '!seen[$0]++' "$APT_SOURCES" > /tmp/sources.list.cleaned && sudo mv /tmp/sources.list.cleaned "$APT_SOURCES"
-    echo "Cleaned main sources.list"
-
-    for file in "$APT_SOURCES_DIR"/*.list; do
-        [ -f "$file" ] || continue
-        awk '!seen[$0]++' "$file" > "/tmp/$(basename "$file").cleaned" && sudo mv "/tmp/$(basename "$file").cleaned" "$file"
-        echo "Cleaned $file"
-    done
-}
-
-# Function to list all enabled repositories
-list_repositories() {
-    echo "Listing enabled repositories..."
-    grep -E '^deb|^deb-src' "$APT_SOURCES"
-    for file in "$APT_SOURCES_DIR"/*.list; do
-        [ -f "$file" ] || continue
-        echo "Repositories in $file:"
-        grep -E '^deb|^deb-src' "$file"
-    done
-}
-
-# Function to add and verify GPG keys
-manage_gpg_keys() {
-    echo "Managing GPG keys..."
-    read -p "Enter key URL: " KEY_URL
-    read -p "Enter key name (e.g., example.gpg): " KEY_NAME
+# --- 1. URI Verification Logic ---
+# Checks if a repository actually exists on debian.org before adding it
+check_uri() {
+    local base_url=$1
+    local suite=$2
+    local component=$3
+    local test_url="${base_url}/dists/${suite}/${component}/binary-amd64/Release"
     
-    wget -qO - "$KEY_URL" | sudo apt-key add - || {
-        echo "Using GPG alternative..."
-        curl -fsSL "$KEY_URL" | gpg --dearmor | sudo tee "$APT_TRUSTED_KEYS/$KEY_NAME" > /dev/null
-    }
-
-    echo "Verifying keys..."
-    sudo apt-key list
+    if curl -IsL --fail --connect-timeout 3 "$test_url" > /dev/null 2>&1; then
+        return 0 
+    else
+        return 1
+    fi
 }
 
-# Main Menu
-echo "APT Maintenance Script - Extended"
-PS3="Select an option: "
-options=("Check Sources" "Update & Upgrade" "Validate Sources" "Clean Sources" "List Repositories" "Manage GPG Keys" "Exit")
+# --- 2. Intelligent Source Generator ---
+# Generates a fresh sources.list based on live verification
+generate_verified_sources() {
+    log "Performing live URI verification against debian.org..."
+    local TEMP_FILE="/tmp/sources.list.new"
+    local BASE="http://deb.debian.org/debian"
+    local SEC_BASE="http://security.debian.org/debian-security"
+    
+    # Identify valid components for this specific version
+    local potential_comps=("main" "contrib" "non-free" "non-free-firmware")
+    local valid_comps=""
+    for comp in "${potential_comps[@]}"; do
+        if check_uri "$BASE" "$CODENAME" "$comp"; then
+            valid_comps="$valid_comps $comp"
+        fi
+    done
+
+    # Identify valid security path (Buster vs Modern)
+    local sec_suite=""
+    if check_uri "$SEC_BASE" "$CODENAME-security" "main"; then
+        sec_suite="$CODENAME-security"
+    elif check_uri "$SEC_BASE" "$CODENAME/updates" "main"; then
+        sec_suite="$CODENAME/updates"
+    fi
+
+    # Build the file
+    {
+        echo "## Generated Universal Sources for Debian $VERSION_ID ($CODENAME)"
+        echo "deb $BASE $CODENAME $valid_comps"
+        echo "deb $BASE $CODENAME-updates $valid_comps"
+        [ -n "$sec_suite" ] && echo "deb $SEC_BASE $sec_suite $valid_comps"
+        
+        if check_uri "$BASE" "$CODENAME-backports" "main"; then
+            echo "deb $BASE $CODENAME-backports $valid_comps"
+        fi
+    } > "$TEMP_FILE"
+
+    sudo mkdir -p "$BACKUP_DIR"
+    sudo cp "$MAIN_SOURCES" "$BACKUP_DIR/sources.list.bak"
+    sudo mv "$TEMP_FILE" "$MAIN_SOURCES"
+    log "Generated $MAIN_SOURCES with components: $valid_comps"
+    sudo apt update
+}
+
+# --- 3. GPG Key Modernization ---
+# Moves keys from deprecated apt-key to /etc/apt/keyrings
+migrate_gpg_keys() {
+    log "Migrating legacy GPG keys to modern storage..."
+    sudo mkdir -p "$KEYRING_DIR"
+    
+    # Extract keys from the old trusted.gpg
+    if [ -f /etc/apt/trusted.gpg ]; then
+        for key in $(gpg --no-default-keyring --keyring /etc/apt/trusted.gpg --list-keys --with-colons | grep pub | cut -d: -f5); do
+            log "Exporting key: $key"
+            sudo gpg --no-default-keyring --keyring /etc/apt/trusted.gpg --export "$key" | \
+            sudo gpg --dearmor -o "$KEYRING_DIR/migrated-$key.gpg"
+        done
+        sudo mv /etc/apt/trusted.gpg "$BACKUP_DIR/trusted.gpg.legacy"
+        log "Legacy keyring archived."
+    else
+        log "No legacy trusted.gpg found. System is clean."
+    fi
+}
+
+# --- 4. DEB822 Converter with Validation ---
+# Converts .list files to the modern Debian 13 format
+convert_to_deb822() {
+    log "Converting .list files to DEB822 (.sources) format..."
+    
+    for file in /etc/apt/sources.list.d/*.list; do
+        [ -e "$file" ] || continue
+        local target="/etc/apt/sources.list.d/$(basename "$file" .list).sources"
+        
+        grep -vE '^#|^$' "$file" | while read -r line; do
+            type=$(echo "$line" | awk '{print $1}')
+            url=$(echo "$line" | awk '{print $2}')
+            suite=$(echo "$line" | awk '{print $3}')
+            comps=$(echo "$line" | cut -d' ' -f4-)
+
+            cat <<EOF | sudo tee "$target" > /dev/null
+Types: $type
+URIs: $url
+Suites: $suite
+Components: $comps
+Enabled: yes
+EOF
+        done
+        
+        # Test if the new file is valid
+        if sudo apt update -o Dir::Etc::sourcelist="$target" -o Dir::Etc::sourceparts="-" -q 2>&1 | grep -q "Reading package lists"; then
+            log "Success: $target created and validated."
+            sudo mv "$file" "$file.bak"
+        else
+            warn "Failed to validate $target. Reverting."
+            sudo rm "$target"
+        fi
+    done
+}
+
+# --- 5. Main Maintenance Cycle ---
+full_maintenance() {
+    log "Starting Full System Maintenance..."
+    sudo apt update
+    sudo apt full-upgrade -y
+    sudo apt autoremove -y
+    sudo apt autoclean
+    log "System is up to date."
+}
+
+# --- Main Menu ---
+clear
+echo -e "${BLUE}====================================================${NC}"
+echo -e "${BLUE}     DEBIAN UNIVERSAL APT MAINTENANCE TOOL          ${NC}"
+echo -e "     Current OS: $PRETTY_NAME"
+echo -e "${BLUE}====================================================${NC}"
+
+options=(
+    "Check & Generate Verified Sources" 
+    "Migrate Legacy GPG Keys" 
+    "Convert to Modern DEB822 Format" 
+    "Full System Upgrade" 
+    "Cleanup .bak files" 
+    "Exit"
+)
+
+PS3="Select an option [1-6]: "
 select opt in "${options[@]}"; do
     case $REPLY in
-        1) check_sources ;;
-        2) update_and_upgrade ;;
-        3) validate_sources ;;
-        4) clean_sources ;;
-        5) list_repositories ;;
-        6) manage_gpg_keys ;;
-        7) echo "Exiting..."; exit 0 ;;
-        *) echo "Invalid option! Please select again." ;;
+        1) generate_verified_sources ;;
+        2) migrate_gpg_keys ;;
+        3) convert_to_deb822 ;;
+        4) full_maintenance ;;
+        5) 
+            read -p "Delete all .bak files? (y/n): " confirm
+            [[ $confirm == [yY] ]] && sudo rm -f /etc/apt/sources.list.d/*.bak && log "Cleaned."
+            ;;
+        6) echo "Exiting..."; exit 0 ;;
+        *) warn "Invalid selection." ;;
     esac
 done
